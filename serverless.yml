@@ -1,0 +1,38 @@
+service: signedUrlDemo
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource: !Join ["/", [!GetAtt privateUploadsBucket.Arn, "*"]]
+
+plugins:
+  - serverless-deployment-bucket
+
+functions:
+  getS3PreSignedUrl:
+    handler: handler.getS3PreSignedUrl
+    environment:
+      BUCKET_NAME: !Ref privateUploadsBucket
+    events:
+      - http:
+          path: util/getS3PreSignedUrl
+          method: post
+
+resources:
+  Resources:
+    privateUploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        #BucketName: !Join ["-", ["a1-demo-private-uploads", "${self:provider.stage}"]]
+        BucketName: "a1-demo-private-uploads"  
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: TRUE
+          BlockPublicPolicy: TRUE
+          IgnorePublicAcls: TRUE
+          RestrictPublicBuckets: TRUE
